@@ -43,8 +43,13 @@ void step_1(const gcry_mpi_t num)
 
 	gcry_mpi_t mod = gcry_mpi_new(0);
 
-	for(short i = 1; gcry_mpi_cmp(num, prime) >= 0; i++)
+	for(int i = 1; gcry_mpi_cmp(num, prime) >= 0; i++)
 	{
+		if(i > 5133)
+		{
+			break;
+		}
+	
 		if(gcry_mpi_cmp(prime, num) == 0)
 		{
 			printf("Number is prime, ");
@@ -59,8 +64,13 @@ void step_1(const gcry_mpi_t num)
 	//i will start from 1, because number should be odd
 	//prime_list[1] is 3
 	
-	for(short i = 0; gcry_mpi_cmp(buff, prime) >= 0; i++)
+	for(int i = 0; gcry_mpi_cmp(buff, prime) >= 0; i++)
 	{
+		if(i > 5133)
+		{
+			break;
+		}
+
 		gcry_mpi_mod(mod, num, prime);
 
 		if(gcry_mpi_cmp(zero, mod) == 0)
