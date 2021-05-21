@@ -13,7 +13,7 @@ extern gcry_mpi_t c;
 
 extern void set_params();
 extern void release_memory();
-//extern int is_square(gcry_mpi_t);
+extern void square_root(gcry_mpi_t, const gcry_mpi_t);
 extern void step_1(const gcry_mpi_t);
 extern void step_2(const gcry_mpi_t);
 
