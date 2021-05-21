@@ -24,6 +24,38 @@ void release_memory()
     	gcry_mpi_release(two);
 };
 
+void square_root(gcry_mpi_t res, const gcry_mpi_t num)
+{
+	int bit = gcry_mpi_get_nbits(num);
+	bit /= 2;
+	
+	gcry_mpi_t buff = gcry_mpi_new(0);
+	gcry_mpi_t bit_t = gcry_mpi_new(0);
+	gcry_mpi_t current_t = gcry_mpi_new(0);
+	gcry_mpi_set_ui(bit_t, bit);
+	gcry_mpi_set(current_t, bit_t);
+
+	while(1)
+	{
+		gcry_mpi_div(buff, NULL, num, bit_t, 0);
+		gcry_mpi_add(buff, bit_t, buff);
+		gcry_mpi_rshift(buff, buff, 1);
+
+		if(gcry_mpi_cmp(buff, bit_t) == 0 || gcry_mpi_cmp(buff, current_t) == 0)
+		{
+			gcry_mpi_set(res, buff);
+			return;
+		}
+
+		gcry_mpi_set(current_t, bit_t);
+		gcry_mpi_set(bit_t, buff);
+	}
+
+	gcry_mpi_release(buff);
+	gcry_mpi_release(bit_t);
+	gcry_mpi_release(current_t);
+};
+
 
 //Step 1: test n for divisibility by primes <= 1 + n/2
 void step_1(const gcry_mpi_t num)
@@ -33,10 +65,9 @@ void step_1(const gcry_mpi_t num)
 		printf("Number is prime, ");
 		return;
 	}
-		
+
 	gcry_mpi_t buff = gcry_mpi_new(0);
-	gcry_mpi_div(buff, NULL, num, two, 0);
-	gcry_mpi_add(buff, buff, one); //1 + n/2
+	square_root(buff, num);
 
 	gcry_mpi_t prime = gcry_mpi_new(0);
 	gcry_mpi_set_ui(prime, prime_list[0]);
@@ -95,26 +126,25 @@ void step_1(const gcry_mpi_t num)
 void step_2 (const gcry_mpi_t num)
 {
 	gcry_mpi_t buff = gcry_mpi_new(0);
-	gcry_mpi_t buff2 = gcry_mpi_new(0);
-	gcry_mpi_set(buff2, zero);
 
-	for(gcry_mpi_set(buff, one); gcry_mpi_cmp(buff2, num) <= 0; gcry_mpi_add(buff, buff, one))
+	square_root(buff, num);
+	gcry_mpi_mul(buff, buff, buff);
+	
+	if(gcry_mpi_cmp(buff, num) == 0)
 	{
-		gcry_mpi_mul(buff2, buff, buff);
-		if(gcry_mpi_cmp(buff2, num) == 0)
-		{
-			printf("Number is square\n");
-			return;
-		}
-	};
-
-	printf("Number is not square\n");
+		printf("Number is not prime\n");
+	}
+	else
+	{
+		printf("Number is probably prime\n");
+	}
 
 	gcry_mpi_release(buff);
-	gcry_mpi_release(buff2);
 };
 
-/*void mult_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f_x, const gcry_mpi_t f_1, const gcry_mpi_t g_x, const gcry_mpi_t g_1)
+
+/*Calculate f(x) * g(x) mod (n, x^2 - b*x - c), f(x) = f_x*x + f_1, g(x) = g_x*x + g_1
+void mult_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f_x, const gcry_mpi_t f_1, const gcry_mpi_t g_x, const gcry_mpi_t g_1)
 {
 	if(f_x == zero)
 	{
