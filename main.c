@@ -37,6 +37,35 @@ int main()
 	step_1(buff3);
 	step_2(buff3);
 
+	//gcry_mpi_set_ui(buff, 7);
+	//gcry_mpi_set_ui(buff2, 4);
+
+	//int j = jacobi(buff, buff2);
+	//int t = jacobi(one, two);
+
+	void print_table(unsigned kmax, unsigned nmax) {
+	printf("n\\k|");
+	for (int k = 0; k <= kmax; ++k) printf("%'3u", k);
+	printf("\n----");
+
+	for (int k = 0; k <= kmax; ++k) printf("---");
+	putchar('\n');
+
+	for (int n = 1; n <= nmax; n += 2) 
+	{
+		printf("%-2u |", n);
+		for (int k = 0; k <= kmax; ++k)
+		{
+			gcry_mpi_set_ui(buff, k);
+			gcry_mpi_set_ui(buff2, n);
+			printf("%'3d", jacobi(buff, buff2));
+		};
+		putchar('\n');
+		};
+	}
+
+	print_table(20, 21);
+
 	gcry_mpi_release(buff);
 	gcry_mpi_release(buff2);
 	gcry_mpi_release(buff3);

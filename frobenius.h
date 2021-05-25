@@ -16,6 +16,7 @@ extern void release_memory();
 extern void square_root(gcry_mpi_t, const gcry_mpi_t);
 extern void step_1(const gcry_mpi_t);
 extern void step_2(const gcry_mpi_t);
+extern int jacobi(gcry_mpi_t, gcry_mpi_t);
 
 //void mult_mod();
 
