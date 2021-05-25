@@ -1,8 +1,6 @@
 #include "frobenius.h"
 #include "primes.h"
 
-u_int64_t multipl;
-
 void set_params()
 {
 	size_t scanned;
