@@ -5,6 +5,33 @@ gcry_mpi_t zero;
 gcry_mpi_t one;
 gcry_mpi_t two;
 
+static void print_table(unsigned kmax, unsigned nmax) 
+{
+	printf("n\\k|");
+		for (int k = 0; k <= kmax; ++k) 
+			printf("%'3u", k);
+	printf("\n----");
+
+	for (int k = 0; k <= kmax; ++k) 
+			printf("---");
+	putchar('\n');
+
+	gcry_mpi_t buff = gcry_mpi_new(0);
+	gcry_mpi_t buff2 = gcry_mpi_new(0);
+
+	for (int n = 1; n <= nmax; n += 2) 
+	{
+		printf("%-2u |", n);
+		for (int k = 0; k <= kmax; ++k)
+		{
+			gcry_mpi_set_ui(buff, k);
+			gcry_mpi_set_ui(buff2, n);
+			printf("%'3d", jacobi(buff, buff2));
+		};
+		putchar('\n');
+	};
+};
+
 int main()
 {
 	set_params();
@@ -43,28 +70,12 @@ int main()
 	//int j = jacobi(buff, buff2);
 	//int t = jacobi(one, two);
 
-	void print_table(unsigned kmax, unsigned nmax) {
-	printf("n\\k|");
-	for (int k = 0; k <= kmax; ++k) printf("%'3u", k);
-	printf("\n----");
-
-	for (int k = 0; k <= kmax; ++k) printf("---");
-	putchar('\n');
-
-	for (int n = 1; n <= nmax; n += 2) 
-	{
-		printf("%-2u |", n);
-		for (int k = 0; k <= kmax; ++k)
-		{
-			gcry_mpi_set_ui(buff, k);
-			gcry_mpi_set_ui(buff2, n);
-			printf("%'3d", jacobi(buff, buff2));
-		};
-		putchar('\n');
-		};
-	}
-
+	printf("\n\n");
 	print_table(20, 21);
+	gcry_mpi_set_ui(buff,3);
+	gcry_mpi_set_ui(buff2, 5);
+
+	jacobi(buff,buff2);
 
 	gcry_mpi_release(buff);
 	gcry_mpi_release(buff2);

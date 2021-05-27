@@ -1,5 +1,6 @@
 #include "frobenius.h"
 #include "primes.h"
+#include <assert.h>
 
 void set_params()
 {
@@ -140,64 +141,63 @@ void step_2 (const gcry_mpi_t num)
 	gcry_mpi_release(buff);
 };
 
-int jacobi(gcry_mpi_t q, gcry_mpi_t p)
+int jacobi(gcry_mpi_t n, gcry_mpi_t k) 
 {
-	/*if(gcry_mpi_cmp(p, two) <= 0)
-	{
-		return 0;
-	}*/
-
-	gcry_mpi_mod(q, q, p);
-
-	int t = 1;
-
 	gcry_mpi_t buff = gcry_mpi_new(0);
 	gcry_mpi_t buff2 = gcry_mpi_new(0);
-	gcry_mpi_t buff3 = gcry_mpi_new(0);
-	gcry_mpi_t num = gcry_mpi_new(0);
+	gcry_mpi_t r = gcry_mpi_new(0);
+	gcry_mpi_t four = gcry_mpi_new(0);
+	gcry_mpi_t eight = gcry_mpi_new(0);
+	gcry_mpi_set_ui(four, 4);
+	gcry_mpi_set_ui(eight, 8);
 
-	while(gcry_mpi_cmp(q, zero) != 0)
+	gcry_mpi_mod(buff, k, two);
+
+	assert(gcry_mpi_cmp_ui(buff, 1) == 0);
+
+	gcry_mpi_mod(n, n, k);
+    
+	int t = 1;
+
+	while (gcry_mpi_cmp_ui(n, 0) != 0) 
 	{
-		gcry_mpi_mod(buff2, q, two);
-		while(gcry_mpi_cmp(q, zero) == 0)
+		gcry_mpi_mod(buff2, n, two);
+        	while (gcry_mpi_cmp_ui(buff2, 0) == 0) 
 		{
-			gcry_mpi_div(q, NULL, q, two, 0);
-
-			gcry_mpi_set_ui(num, 8);
-			gcry_mpi_mod(buff3, p, num);
-
-			if(gcry_mpi_cmp_ui(buff3, 3) == 0 || gcry_mpi_cmp_ui(buff3, 5) == 0)
+			gcry_mpi_div(n, NULL, n, two, 0);           
+			gcry_mpi_mod(r, k, eight);
+        
+			if (gcry_mpi_cmp_ui(r, 3) == 0 || gcry_mpi_cmp_ui(r, 5) == 0)
 			{
 				t = -t;
 			}
+			gcry_mpi_mod(buff2, n, two);
 		}
 
-		//swap(q,p) p-> num, q->p, num->q
-		gcry_mpi_set(num, p);
-		gcry_mpi_set(p, q);
-		gcry_mpi_set(q, num);
+		gcry_mpi_set(buff, n);
+		gcry_mpi_set(n, k);
+		gcry_mpi_set(k, buff);
 
-		gcry_mpi_set_ui(num, 4);
-
-		gcry_mpi_mod(buff, p, num); //p % 4
-		gcry_mpi_mod(buff2, q, num); //q % 4
-
-		if(gcry_mpi_cmp_ui(buff, 3) == 0 && gcry_mpi_cmp_ui(buff2, 3) == 0)
+		gcry_mpi_mod(buff, n, four);
+		gcry_mpi_mod(buff2, k, four);
+	
+		if (gcry_mpi_cmp_ui(buff, 3) == 0 && gcry_mpi_cmp_ui(buff2, 3) == 0)
 		{
-			t = -t;
+			t = -t;		
 		}
-
-		gcry_mpi_mod(q, q, p);
+		
+		gcry_mpi_mod(n, n, k);
 	}
 
-	t = (gcry_mpi_cmp(p, one) == 0) ? t : 0;
+	t = (gcry_mpi_cmp(k, one) == 0) ? t : 0;
 	return t;
-
+	
 	gcry_mpi_release(buff);
 	gcry_mpi_release(buff2);
-	gcry_mpi_release(buff3);
-	gcry_mpi_release(num);
-};
+	gcry_mpi_release(r);
+	gcry_mpi_release(four);
+	gcry_mpi_release(eight);
+}
 
 
 /*Calculate f(x) * g(x) mod (n, x^2 - b*x - c), f(x) = f_x*x + f_1, g(x) = g_x*x + g_1
