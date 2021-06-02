@@ -12,7 +12,7 @@ static void print_table(unsigned kmax, unsigned nmax)
 			printf("%'3u", k);
 	printf("\n----");
 
-	for (int k = 0; k <= kmax; ++k) 
+	for (int k = 0; k <= kmax; --k) 
 			printf("---");
 	putchar('\n');
 
@@ -34,7 +34,7 @@ static void print_table(unsigned kmax, unsigned nmax)
 
 int main()
 {
-	set_params();
+	set_nums();
 	size_t scanned;
 
 	gcry_mpi_t buff = gcry_mpi_new(0);
@@ -72,10 +72,18 @@ int main()
 
 	printf("\n\n");
 	print_table(20, 21);
-	gcry_mpi_set_ui(buff,3);
+	printf("\n");
+	/*gcry_mpi_set_ui(buff,3);
 	gcry_mpi_set_ui(buff2, 5);
 
-	jacobi(buff,buff2);
+	jacobi(buff,buff2);*/
+
+	struct params p;
+	set_params(&p, buff3);
+	gcry_mpi_dump(p.c);
+	printf("\n");
+	gcry_mpi_dump(p.b);
+
 
 	gcry_mpi_release(buff);
 	gcry_mpi_release(buff2);

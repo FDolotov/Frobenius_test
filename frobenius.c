@@ -2,7 +2,7 @@
 #include "primes.h"
 #include <assert.h>
 
-void set_params()
+void set_nums()
 {
 	size_t scanned;
 
@@ -141,8 +141,13 @@ void step_2 (const gcry_mpi_t num)
 	gcry_mpi_release(buff);
 };
 
-int jacobi(gcry_mpi_t n, gcry_mpi_t k) 
+int jacobi(const gcry_mpi_t q, const gcry_mpi_t p) 
 {
+	gcry_mpi_t n = gcry_mpi_new(0);
+	gcry_mpi_set(n, q);
+	gcry_mpi_t k = gcry_mpi_new(0);
+	gcry_mpi_set(k, p);
+
 	gcry_mpi_t buff = gcry_mpi_new(0);
 	gcry_mpi_t buff2 = gcry_mpi_new(0);
 	gcry_mpi_t r = gcry_mpi_new(0);
@@ -192,12 +197,53 @@ int jacobi(gcry_mpi_t n, gcry_mpi_t k)
 	t = (gcry_mpi_cmp(k, one) == 0) ? t : 0;
 	return t;
 	
+	gcry_mpi_release(n);
+	gcry_mpi_release(k);
 	gcry_mpi_release(buff);
 	gcry_mpi_release(buff2);
 	gcry_mpi_release(r);
 	gcry_mpi_release(four);
 	gcry_mpi_release(eight);
 }
+
+void set_params(struct params *p, const gcry_mpi_t n)
+{
+	p->b = gcry_mpi_new(0);
+	p->c = gcry_mpi_new(0);
+
+	gcry_mpi_set_ui(p->b, 0);
+	gcry_mpi_set_ui(p->c, 0);
+
+	int size = gcry_mpi_get_nbits(n);
+	
+	do
+	{
+		gcry_mpi_randomize(p->c, size, GCRY_STRONG_RANDOM);
+		gcry_mpi_mod(p->c, p->c, n); //if c would be greater than n
+
+		gcry_mpi_mulm(p->c, p->c, p->c, n);
+		gcry_mpi_sub(p->c, n, p->c);
+	}
+	while(gcry_mpi_cmp_ui(p->c, 3) < 0);
+
+	gcry_mpi_t bc = gcry_mpi_new(0); //for b^2 + 4c
+	gcry_mpi_t buff = gcry_mpi_new(0);
+
+	do
+	{
+		gcry_mpi_randomize(p->b, size, GCRY_STRONG_RANDOM);
+		gcry_mpi_mod(p->b, p->b, n);
+
+		gcry_mpi_mul(bc, p->b, p->b);
+		gcry_mpi_mul_ui(buff, p->c, 4);
+		gcry_mpi_add(bc, bc, buff);
+
+	}
+	while(jacobi(bc, n) != -1);
+
+	gcry_mpi_release(buff);
+	gcry_mpi_release(bc);
+};
 
 
 /*Calculate f(x) * g(x) mod (n, x^2 - b*x - c), f(x) = f_x*x + f_1, g(x) = g_x*x + g_1
