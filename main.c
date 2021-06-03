@@ -88,5 +88,6 @@ int main()
 	gcry_mpi_release(buff);
 	gcry_mpi_release(buff2);
 	gcry_mpi_release(buff3);
+	release_params(&p);
 	release_memory();
 };

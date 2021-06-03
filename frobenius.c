@@ -245,6 +245,12 @@ void set_params(struct params *p, const gcry_mpi_t n)
 	gcry_mpi_release(bc);
 };
 
+void release_params(struct params* p)
+{
+	gcry_mpi_release(p->c);
+	gcry_mpi_release(p->b);
+};
+
 
 /*Calculate f(x) * g(x) mod (n, x^2 - b*x - c), f(x) = f_x*x + f_1, g(x) = g_x*x + g_1
 void mult_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f_x, const gcry_mpi_t f_1, const gcry_mpi_t g_x, const gcry_mpi_t g_1)

@@ -16,6 +16,7 @@ struct params
 extern void set_nums();
 extern void release_memory();
 extern void set_params(struct params*, const gcry_mpi_t);
+extern void release_params(struct params*);
 extern void square_root(gcry_mpi_t, const gcry_mpi_t);
 extern void step_1(const gcry_mpi_t);
 extern void step_2(const gcry_mpi_t);
