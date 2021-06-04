@@ -4,16 +4,14 @@
 
 void set_nums()
 {
-	size_t scanned;
-
 	zero = gcry_mpi_new(0);
-	gcry_mpi_scan(&zero, GCRYMPI_FMT_HEX, "0", 0, &scanned);
+	gcry_mpi_set_ui(zero, 0);
 
 	one = gcry_mpi_new(0);
-	gcry_mpi_scan(&one, GCRYMPI_FMT_HEX, "1", 0, &scanned);
+	gcry_mpi_set_ui(one, 1);
 
 	two = gcry_mpi_new(0);
-	gcry_mpi_scan(&two, GCRYMPI_FMT_HEX, "2", 0, &scanned);
+	gcry_mpi_set_ui(two, 2);
 };
 
 void release_memory()
@@ -43,7 +41,7 @@ void square_root(gcry_mpi_t res, const gcry_mpi_t num)
 		if(gcry_mpi_cmp(buff, bit_t) == 0 || gcry_mpi_cmp(buff, current_t) == 0)
 		{
 			gcry_mpi_set(res, buff);
-			return;
+			break;
 		}
 
 		gcry_mpi_set(current_t, bit_t);
@@ -59,11 +57,7 @@ void square_root(gcry_mpi_t res, const gcry_mpi_t num)
 //Step 1: test n for divisibility by primes <= square root of num
 void step_1(const gcry_mpi_t num)
 {
-	if(gcry_mpi_cmp(zero, num) == 0 || gcry_mpi_cmp(one, num) == 0 || gcry_mpi_cmp(two, num) == 0)
-	{
-		printf("Number is prime, ");
-		return;
-	}
+	int primality = -1; //1 - prime, -1 - composite
 
 	gcry_mpi_t buff = gcry_mpi_new(0);
 	square_root(buff, num);
@@ -76,45 +70,53 @@ void step_1(const gcry_mpi_t num)
 	for(int i = 1; gcry_mpi_cmp(num, prime) >= 0; i++)
 	{
 		if(i > 5133)
-		{
 			break;
-		}
 	
 		if(gcry_mpi_cmp(prime, num) == 0)
 		{
-			printf("Number is prime, ");
-			return;
+			primality = 1;
+			break;
 		}
 
 		gcry_mpi_set_ui(prime, prime_list[i]);
 	};
+	
+	/*if(primality == 1)
+	{
+		printf("Number is prime, ");
+	}*/
 
 	gcry_mpi_set_ui(prime, prime_list[0]);
 
 	//i will start from 1, because number should be odd
 	//prime_list[1] is 3
 	
+	//primality = 1;
+	
 	for(int i = 0; gcry_mpi_cmp(buff, prime) >= 0; i++)
 	{
 		if(i > 5133)
-		{
 			break;
-		}
 
 		gcry_mpi_mod(mod, num, prime);
 
 		if(gcry_mpi_cmp(zero, mod) == 0)
 		{
-			printf("Number is composite, ");
-			return;
+			//printf("Number is composite, ");
+			primality = -1;
+			break;
 		}
 		else
 		{
+			primality = 1;
 			gcry_mpi_set_ui(prime, prime_list[i]);
 		}
 	}
 
-	printf("Number is probably prime, ");
+	if(primality == 1)
+		printf("Number is probably prime, ");
+	else
+		printf("Number is composite, ");
 
 	gcry_mpi_release(buff);
 	gcry_mpi_release(prime);
@@ -195,7 +197,6 @@ int jacobi(const gcry_mpi_t q, const gcry_mpi_t p)
 	}
 
 	t = (gcry_mpi_cmp(k, one) == 0) ? t : 0;
-	return t;
 	
 	gcry_mpi_release(n);
 	gcry_mpi_release(k);
@@ -204,6 +205,8 @@ int jacobi(const gcry_mpi_t q, const gcry_mpi_t p)
 	gcry_mpi_release(r);
 	gcry_mpi_release(four);
 	gcry_mpi_release(eight);
+	
+	return t;
 }
 
 void set_params(struct params *p, const gcry_mpi_t n)

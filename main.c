@@ -30,21 +30,26 @@ static void print_table(unsigned kmax, unsigned nmax)
 		};
 		putchar('\n');
 	};
+
+	gcry_mpi_release(buff);
+	gcry_mpi_release(buff2);
 };
 
 int main()
 {
 	set_nums();
-	size_t scanned;
 
 	gcry_mpi_t buff = gcry_mpi_new(0);
-	gcry_mpi_scan(&buff, GCRYMPI_FMT_HEX, "FFFF", 0, &scanned);
+	gcry_mpi_set_ui(buff, 21);
+	//gcry_mpi_scan(&buff, GCRYMPI_FMT_HEX, "FFFF", 0, 0);
 
 	gcry_mpi_t buff2 = gcry_mpi_new(0);
-	gcry_mpi_scan(&buff2, GCRYMPI_FMT_HEX, "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD97", 0, &scanned);
+	gcry_mpi_set_ui(buff2, 63119);
+	//gcry_mpi_scan(&buff2, GCRYMPI_FMT_HEX, "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD97", 0, 0);
 
 	gcry_mpi_t buff3 = gcry_mpi_new(0);
-	gcry_mpi_scan(&buff3, GCRYMPI_FMT_HEX, "605F6B7C183FA81578BC39CFAD518132B9DF62897009AF7E522C32D6DC7BFFB", 0, &scanned); 
+	gcry_mpi_set_ui(buff3, 511);
+	//gcry_mpi_scan(&buff3, GCRYMPI_FMT_HEX, "605F6B7C183FA81578BC39CFAD518132B9DF62897009AF7E522C32D6DC7BFFB", 0, 0); 
 	
 	printf("\n");
 	gcry_mpi_dump(buff);
@@ -73,16 +78,18 @@ int main()
 	printf("\n\n");
 	print_table(20, 21);
 	printf("\n");
-	/*gcry_mpi_set_ui(buff,3);
-	gcry_mpi_set_ui(buff2, 5);
+	//gcry_mpi_set_ui(buff,3);
+	//gcry_mpi_set_ui(buff2, 5);
 
-	jacobi(buff,buff2);*/
+	//jacobi(buff,buff2);
 
 	struct params p;
-	set_params(&p, buff3);
+	set_params(&p, buff2);
+	
 	gcry_mpi_dump(p.c);
 	printf("\n");
 	gcry_mpi_dump(p.b);
+	printf("\n");
 
 
 	gcry_mpi_release(buff);
