@@ -40,16 +40,13 @@ int main()
 	set_nums();
 
 	gcry_mpi_t buff = gcry_mpi_new(0);
-	gcry_mpi_set_ui(buff, 21);
-	//gcry_mpi_scan(&buff, GCRYMPI_FMT_HEX, "FFFF", 0, 0);
+	gcry_mpi_scan(&buff, GCRYMPI_FMT_HEX, "FFFF", 0, 0);
 
 	gcry_mpi_t buff2 = gcry_mpi_new(0);
-	gcry_mpi_set_ui(buff2, 63119);
-	//gcry_mpi_scan(&buff2, GCRYMPI_FMT_HEX, "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD97", 0, 0);
+	gcry_mpi_scan(&buff2, GCRYMPI_FMT_HEX, "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD97", 0, 0);
 
 	gcry_mpi_t buff3 = gcry_mpi_new(0);
-	gcry_mpi_set_ui(buff3, 511);
-	//gcry_mpi_scan(&buff3, GCRYMPI_FMT_HEX, "605F6B7C183FA81578BC39CFAD518132B9DF62897009AF7E522C32D6DC7BFFB", 0, 0); 
+	gcry_mpi_scan(&buff3, GCRYMPI_FMT_HEX, "605F6B7C183FA81578BC39CFAD518132B9DF62897009AF7E522C32D6DC7BFFB", 0, 0); 
 	
 	printf("\n");
 	gcry_mpi_dump(buff);
