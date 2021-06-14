@@ -162,3 +162,20 @@ void release_params(struct params* p)
 	gcry_mpi_release(p->c);
 	gcry_mpi_release(p->b);
 };
+
+void split(u_int64_t *s, gcry_mpi_t d, const gcry_mpi_t num)
+{
+	u_int64_t bit = gcry_mpi_get_nbits(num);
+	
+	for(u_int64_t i = 1; i <= bit; i++)
+	{
+		if(gcry_mpi_test_bit(num, i))
+		{
+			*s = i;
+			break;
+		}
+	};
+
+	gcry_mpi_mul_2exp(d, one, *s);
+	gcry_mpi_div(d, NULL, num, d, 0);
+};
