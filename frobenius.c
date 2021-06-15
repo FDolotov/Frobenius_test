@@ -180,7 +180,10 @@ static void power_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t power
 
 	int j = -1;
 
-	for(int base = gcry_mpi_get_nbits(power) -1; base > 0; base--)
+	gcry_mpi_t bin = gcry_mpi_new(0);
+	hex_to_bin(bin, power);
+	
+	for(int base = number_length(bin, 2); base > 0; base--)
 	{
 		//Doubling
 		//Compute B2j = Bj*Aj
