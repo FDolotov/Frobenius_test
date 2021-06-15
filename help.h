@@ -23,6 +23,8 @@ extern void release_params(struct params*);
 extern void square_root(gcry_mpi_t, const gcry_mpi_t);
 extern int jacobi(const gcry_mpi_t,const gcry_mpi_t);
 extern void split(u_int64_t *, gcry_mpi_t, const gcry_mpi_t);
+extern int number_length(const gcry_mpi_t, const int);
+extern void hex_to_bin(gcry_mpi_t, const gcry_mpi_t);
 
 #endif
 

@@ -1,5 +1,6 @@
 #include "help.h"
 #include <assert.h>
+#include <string.h>
 
 void set_nums()
 {
@@ -68,17 +69,16 @@ int jacobi(const gcry_mpi_t q, const gcry_mpi_t p)
 	gcry_mpi_set_ui(eight, 8);
 
 	gcry_mpi_mod(buff, k, two);
-
-	assert(gcry_mpi_cmp_ui(buff, 1) == 0);
+	assert(gcry_mpi_cmp(buff, one) == 0);
 
 	gcry_mpi_mod(n, n, k);
     
 	int t = 1;
 
-	while (gcry_mpi_cmp_ui(n, 0) != 0) 
+	while (gcry_mpi_cmp(n, zero) != 0) 
 	{
 		gcry_mpi_mod(buff2, n, two);
-        	while (gcry_mpi_cmp_ui(buff2, 0) == 0) 
+        	while (gcry_mpi_cmp(buff2, zero) == 0) 
 		{
 			gcry_mpi_div(n, NULL, n, two, 0);           
 			gcry_mpi_mod(r, k, eight);
@@ -178,4 +178,71 @@ void split(u_int64_t *s, gcry_mpi_t d, const gcry_mpi_t num)
 
 	gcry_mpi_mul_2exp(d, one, *s);
 	gcry_mpi_div(d, NULL, num, d, 0);
+};
+
+//Base could be 2 or 16
+int number_length(const gcry_mpi_t n, const int base)
+{	
+	int l = 0;
+	gcry_mpi_t del = gcry_mpi_new(0);
+
+	gcry_mpi_set_ui(del, 16);
+
+	gcry_mpi_t buff = gcry_mpi_new(0);
+	gcry_mpi_set(buff, n);
+
+	while(gcry_mpi_cmp(buff, zero) != 0)
+	{
+		gcry_mpi_div(buff, NULL, buff, del, 0);
+		//gcry_mpi_rshift(buff, buff, bit);
+		l++;
+	}
+
+	gcry_mpi_release(buff);
+	return l;
+};
+
+void hex_to_bin(gcry_mpi_t rez, const gcry_mpi_t n)
+{
+	gcry_mpi_t number = gcry_mpi_new(0);
+	gcry_mpi_set(number, n);
+	
+	gcry_mpi_t buff = gcry_mpi_new(0);
+	
+	int len = number_length(n, 16);
+
+	char num[len*4];
+	strcpy(num, "0");
+
+	char bin[16][5] = {"0000", "0001", "0010", "0011", "0100", "0101", "0110", "0111", "1000", "1001", "1010", "1011", "1100", "1101", "1110", "1111"};
+
+	gcry_mpi_t buff2 = gcry_mpi_new(0);
+
+	int k;
+	for(int i = len - 1; i >= 0; i--)
+	{
+		gcry_mpi_rshift(buff, number, 4 * i);
+		gcry_mpi_set(buff2, buff);
+		for(int m = 0; m < i; m++)
+			gcry_mpi_mul_ui(buff, buff, 16);
+
+		gcry_mpi_sub(number, number, buff);
+
+		k = 0;
+		while(gcry_mpi_cmp_ui(buff2, k) != 0) 
+			k++;
+
+		strcat(num, bin + k);
+	};
+
+	gcry_mpi_t buff3 = gcry_mpi_new(0);
+	size_t scanned;
+	gcry_mpi_scan(&buff3, GCRYMPI_FMT_HEX, num, 0, &scanned);
+	gcry_mpi_set(rez, buff3);
+
+	
+	gcry_mpi_release(buff);
+	gcry_mpi_release(buff2);
+	gcry_mpi_release(buff3);
+	gcry_mpi_release(number);
 };
