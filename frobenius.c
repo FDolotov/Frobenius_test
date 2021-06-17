@@ -5,7 +5,6 @@
 //Step 1: test n for divisibility by primes <= square root of num
 bool step_1(const gcry_mpi_t n)
 {
-	printf("Step 1:\n");
 	bool primality = false; //1 - prime, -1 - composite
 
 	gcry_mpi_t buff = gcry_mpi_new(0);
@@ -35,7 +34,7 @@ bool step_1(const gcry_mpi_t n)
 	//i will start from 1, because number should be odd
 	//prime_list[1] is 3
 	
-	for(int i = 0; gcry_mpi_cmp(buff, prime) >= 0; i++)
+	for(int i = 1; gcry_mpi_cmp(buff, prime) >= 0; i++)
 	{
 		if(i > 5133)
 			break;
@@ -64,8 +63,6 @@ bool step_1(const gcry_mpi_t n)
 //Step 2: test whether sqrt(n) is integer
 bool step_2 (const gcry_mpi_t n)
 {
-	printf("Step 2:\n");
-
 	bool primality;
 	gcry_mpi_t buff = gcry_mpi_new(0);
 
@@ -85,12 +82,29 @@ bool step_2 (const gcry_mpi_t n)
 //Proposion 3.2
 //Calculate f(x) * g(x) mod (n, x^2 - b*x - c), f(x) = f*x + g, g(x) = d*x + e
 
-static void mult_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f, const gcry_mpi_t g, const gcry_mpi_t d, const gcry_mpi_t e, const gcry_mpi_t n, struct params *p)
+static void mult_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f_i, const gcry_mpi_t g_i, const gcry_mpi_t d_i, const gcry_mpi_t e_i, const gcry_mpi_t n, struct params *p)
 {
+	gcry_mpi_t f = gcry_mpi_new(0);
+	gcry_mpi_t g = gcry_mpi_new(0);
+
+	gcry_mpi_set(f, f_i);
+	gcry_mpi_set(g, g_i);
+	
+	gcry_mpi_t d = gcry_mpi_new(0);
+	gcry_mpi_t e = gcry_mpi_new(0);
+
+	gcry_mpi_set(d, d_i);
+	gcry_mpi_set(e, e_i);
+
 	if(f == zero)
 	{
 		gcry_mpi_mulm(rez_x, g, d, n);
-		gcry_mpi_mulm(rez_1, g, d, n);
+		gcry_mpi_mulm(rez_1, g, e, n);
+
+		gcry_mpi_release(f);
+		gcry_mpi_release(g);
+		gcry_mpi_release(d);
+		gcry_mpi_release(e);
 		return;
 	};
 
@@ -112,6 +126,13 @@ static void mult_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f, con
 	gcry_mpi_mulm(buff2, p->c, d, n); // c * d
 	gcry_mpi_mulm(buff2, buff2, f, n); // c * d * f
 	gcry_mpi_addm(rez_1, buff, buff2, n);
+
+	gcry_mpi_release(f);
+	gcry_mpi_release(g);
+	gcry_mpi_release(d);
+	gcry_mpi_release(e);
+	gcry_mpi_release(buff);
+	gcry_mpi_release(buff2);
 };
 
 //x * (fx + g) mod(n, x^2 - bx - c) = (fb + g)x + fc
@@ -126,18 +147,30 @@ static void mult_x_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f, c
 	gcry_mpi_mulm(rez_1, p->c, f, n);
 
 	gcry_mpi_mulm(rez_x, p->b, buff, n);
-	gcry_mpi_addm(rez_x, rez_x, buff, n);
+	gcry_mpi_addm(rez_x, rez_x, buff2, n);
+
+	gcry_mpi_release(buff);
+	gcry_mpi_release(buff2);
 }
 
 //From proposion 3.2
 //Calculate square of f(x) = (f*x + g)^2 mod (n, x^2 - b*x - c)
 
-static void square_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f, const gcry_mpi_t g, const gcry_mpi_t n, struct params *p)
+static void square_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f_i, const gcry_mpi_t g_i, const gcry_mpi_t n, struct params *p)
 {
+	gcry_mpi_t f = gcry_mpi_new(0);
+	gcry_mpi_t g = gcry_mpi_new(0);
+
+	gcry_mpi_set(f, f_i);
+	gcry_mpi_set(g, g_i);
+	
 	if(gcry_mpi_cmp(f, zero) == 0)
 	{
 		gcry_mpi_set(rez_x, zero);
 		gcry_mpi_mulm(rez_1, f, f, n);
+
+		gcry_mpi_release(f);
+		gcry_mpi_release(g);
 
 		return;
 	}	
@@ -147,15 +180,19 @@ static void square_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f, c
 
 	gcry_mpi_mulm(buff, f, g, n); // f * g
 	gcry_mpi_mulm(buff, buff, two, n); // 2 * f * g
-	gcry_mpi_powm(rez_x, f, two, n); // f^2
+	gcry_mpi_mulm(rez_x, f, f, n); // f^2
 	gcry_mpi_mulm(rez_x, rez_x, p->b, n); // b * f^2
 	gcry_mpi_addm(rez_x, rez_x, buff, n);
 
 	//rez_1 = (g^2 + c(f^2)) % n
-	gcry_mpi_powm(buff, g, two, n); // g^2
-	gcry_mpi_powm(rez_1, f, two, n); // f^2
+	gcry_mpi_mulm(buff, g, g, n); // g^2
+	gcry_mpi_mulm(rez_1, f, f, n); // f^2
        	gcry_mpi_mulm(rez_1, rez_1, p->c, n); // c * f^2
 	gcry_mpi_addm(rez_1, buff, rez_1, n);
+
+	gcry_mpi_release(f);
+	gcry_mpi_release(g);
+	gcry_mpi_release(buff);
 };
 
 
@@ -178,12 +215,12 @@ static void power_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t power
 	//C1 = c^1 = c
 	gcry_mpi_set(Cj, p->c);
 
-	int j = -1;
+	bool even = false;
 
 	gcry_mpi_t bin = gcry_mpi_new(0);
 	hex_to_bin(bin, power);
 	
-	for(int base = number_length(bin, 2); base > 0; base--)
+	for(int base = number_length(bin, 2); base < 0; base--)
 	{
 		//Doubling
 		//Compute B2j = Bj*Aj
@@ -193,7 +230,7 @@ static void power_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t power
 		gcry_mpi_mulm(Aj, Aj, Aj, n);
 		gcry_mpi_addm(buff, Cj, Cj, n);
 
-		if(j == 1)
+		if(even)
 			gcry_mpi_sub(Aj, Aj, buff);
 		else
 			gcry_mpi_addm(Aj, Aj, buff, n);
@@ -201,24 +238,32 @@ static void power_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t power
 		//Compute C2j = Cj^2
 		gcry_mpi_mulm(Cj, Cj, Cj, n);
 
-		j = 1;
+		even = true;
 
-		if(gcry_mpi_test_bit(power, base) == 1)
+		if(gcry_mpi_test_bit(power, base))
 		{
 			//Chain addition
 			//Compute A(j+1) = 2^-1(AjA1 + (b^2 + 4c)BjB1)
 			gcry_mpi_mulm(buff, p->b, p->b, n);
 			gcry_mpi_mul_ui(buff2, p->c, 4);
-			gcry_mpi_addm(buff, buff, buff2, n);
+			gcry_mpi_addm(buff, buff, buff2, n); //b^2 + 4c
 
 			gcry_mpi_mulm(buff, buff, Bj, n); //As B1 = 1, we can ignore it
 			gcry_mpi_mulm(buff2, Aj, p->b, n); //A1 = b
 			gcry_mpi_addm(buff, buff, buff2, n);
+
+			gcry_mpi_mod(buff2, buff, two);
+			if(gcry_mpi_cmp(buff2, one) == 0)
+				gcry_mpi_add(buff, buff, n);
 			gcry_mpi_div(buff, NULL, buff, two, 0);
 
 			//Compute B(j+1) = 2^-1(AjB1 + A1Bj)
-			gcry_mpi_mulm(buff2, p->b, Bj, n); // A1 = b
-			gcry_mpi_addm(buff2, buff2, Aj, n); //Use Aj, not A(j+1), B1 = 1
+			gcry_mpi_mulm(Bj, p->b, Bj, n); // A1 = b
+			gcry_mpi_addm(Bj, Bj, Aj, n); //Use Aj, not A(j+1), B1 = 1
+			
+			gcry_mpi_mod(buff2, Bj, two);
+			if(gcry_mpi_cmp(buff2, one) == 0)
+				gcry_mpi_add(Bj,Bj, n);
 			gcry_mpi_div(Bj, NULL, buff2, two, 0);
 
 			gcry_mpi_set(Aj, buff); //Aj -> A(j+1)
@@ -226,7 +271,7 @@ static void power_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t power
 			//Compute C(j+1) = CjC1
 			gcry_mpi_mulm(Cj, Cj, p->c, n); //C1 = c
 
-			j = -1;
+			even = false;
 		};
 
 	};
@@ -237,7 +282,12 @@ static void power_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t power
 	gcry_mpi_mulm(buff, p->b, Bj, n);
 	gcry_mpi_set(rez_1, Aj);
 	gcry_mpi_sub(rez_1, rez_1, buff);
+
+	gcry_mpi_mod(buff2, rez_1, two);
+	if(gcry_mpi_cmp(buff2, one) == 1)
+		gcry_mpi_add(rez_1, rez_1, n);
 	gcry_mpi_div(rez_1, NULL, rez_1, two, 0);
+	gcry_mpi_mod(rez_1, rez_1, n);
 
 	gcry_mpi_release(Aj);
 	gcry_mpi_release(Bj);
@@ -246,18 +296,32 @@ static void power_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t power
 	gcry_mpi_release(buff2);
 };
 
-static void sigma(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f, const gcry_mpi_t g, const gcry_mpi_t n, struct params *p)
+static void sigma(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f_i, const gcry_mpi_t g_i, const gcry_mpi_t n, struct params *p)
 {
+	gcry_mpi_t f = gcry_mpi_new(0);
+	gcry_mpi_t g = gcry_mpi_new(0);
+
+	gcry_mpi_set(f, f_i);
+	gcry_mpi_set(g, g_i);
+
 	gcry_mpi_sub(rez_x, n, f);
 	
 	gcry_mpi_mulm(rez_1, f, p->b, n);
 	gcry_mpi_addm(rez_1, rez_1, g, n);
+
+	gcry_mpi_release(f);
+	gcry_mpi_release(g);
 };
 
 //set f*x + g mod (n, x^2 - bx - c) to multiplicative inverse
-static int invert_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f, const gcry_mpi_t g, const gcry_mpi_t n, struct params *p)
+static bool invert_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f_i, const gcry_mpi_t g_i, const gcry_mpi_t n, struct params *p)
 {
 	gcry_mpi_t buff = gcry_mpi_new(0);
+	gcry_mpi_t f = gcry_mpi_new(0);
+	gcry_mpi_t g = gcry_mpi_new(0);
+
+	gcry_mpi_set(f, f_i);
+	gcry_mpi_set(g, g_i);
 
 	if(gcry_mpi_cmp(g, zero) == 0)
 	{
@@ -265,16 +329,21 @@ static int invert_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f, co
 		gcry_mpi_invm(rez_x, buff, n);
 		gcry_mpi_sub(rez_1, n, rez_x);
 		gcry_mpi_mulm(rez_1, rez_1, p->b, n);
+
 		gcry_mpi_release(buff);
-		return 1;
+		gcry_mpi_release(f);
+		gcry_mpi_release(g);
+		return true;
 	}
 
 	//g^(-1)
 	//if g != 0 is not invertable, gcd(f_1, n) is non-trivial, than n is composite
 	if(!gcry_mpi_invm(buff, g, n))
 	{
+		gcry_mpi_release(f);
+		gcry_mpi_release(g);
 		gcry_mpi_release(buff);
-		return 0;
+		return false;
 	}
 
 	// f * b * g + g^2 - f^2 * c
@@ -283,12 +352,12 @@ static int invert_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f, co
 
 	gcry_mpi_t buff1 = gcry_mpi_new(0);
 
-	gcry_mpi_mulm(buff1, f, p->b, n); //f *b
+	gcry_mpi_mulm(buff1, f, p->b, n); //f * b
 
 	gcry_mpi_t buff2 = gcry_mpi_new(0);
 
 	gcry_mpi_mulm(buff1, buff1, g, n); //f * b * g
-	gcry_mpi_mulm(buff2, g, g, n); //f_1^2
+	gcry_mpi_mulm(buff2, g, g, n); //g^2
 	gcry_mpi_addm(buff1, buff1, buff2, n); //f * b * g + g^2
 	gcry_mpi_subm(buff1, buff1, buff, n); // - f^2 * c
 
@@ -299,7 +368,9 @@ static int invert_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f, co
 		gcry_mpi_release(buff);
 		gcry_mpi_release(buff1);
 		gcry_mpi_release(buff2);
-		return 0;
+		gcry_mpi_release(f);
+		gcry_mpi_release(g);
+		return false;
 	}
 
 	//rez_x = -f/(f * b * g + g^2 - f^2 * c)
@@ -314,8 +385,10 @@ static int invert_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t f, co
 	gcry_mpi_release(buff);
 	gcry_mpi_release(buff1);
 	gcry_mpi_release(buff2);
+	gcry_mpi_release(f);
+	gcry_mpi_release(g);
 
-	return 1;
+	return true;
 };
 
 
@@ -323,7 +396,7 @@ bool step3_4_5(const gcry_mpi_t n, struct params *p)
 {
 	u_int64_t r;
 
-	bool primality = false;
+	bool primality = true;
 	gcry_mpi_t s = gcry_mpi_new(0);
 	gcry_mpi_t t = gcry_mpi_new(0); //if 2^r*s = n +- 1, t = (s-1)/2
 
@@ -337,14 +410,14 @@ bool step3_4_5(const gcry_mpi_t n, struct params *p)
 
 	//Theorem 3.4: we should check if n = 1 mod 4 or n = 3 mod 4
 	//Step 3: check if x^(n+1)/2 is in Z
-	printf("Step 3:\n");
 	
 	gcry_mpi_t buff = gcry_mpi_new(0);
-	gcry_mpi_set_ui(buff, 4);
-	gcry_mpi_mod(buff, n, buff);
+	gcry_mpi_t mod = gcry_mpi_new(0);
+	gcry_mpi_set_ui(mod, 4);
+	gcry_mpi_mod(mod, n, mod);
 	
 
-	bool n_1_mod_4 = gcry_mpi_cmp_ui(buff, 1) == 0;
+	bool n_1_mod_4 = gcry_mpi_cmp_ui(mod, 1) == 0;
 	if(n_1_mod_4)
 		gcry_mpi_sub(buff, n, one);
 	else
@@ -375,21 +448,19 @@ bool step3_4_5(const gcry_mpi_t n, struct params *p)
 	gcry_mpi_set(power_f, f);
 	gcry_mpi_set(power_g, g);
 
-	if(gcry_mpi_cmp(f, zero) == 0)
-		primality = true;
+	if(gcry_mpi_cmp(f, zero) != 0)
+		primality = false;
 
 	//Step 4: check if x^(n+1) == -c
-	printf("Step 4:\n");
 	gcry_mpi_mul(f, f, f);
 	gcry_mpi_sub(buff, n, p->c);
 
-	if(gcry_mpi_cmp(f, buff) != 0)
+	if(gcry_mpi_cmp(f, buff) == 0)
 		primality = false;
 	else
 		primality = true;
 
 	//Step 5:
-	printf("Step 5:\n");
 	gcry_mpi_mul(buff, n, n);
 	gcry_mpi_sub(buff, buff, one);
 	
@@ -438,8 +509,20 @@ bool step3_4_5(const gcry_mpi_t n, struct params *p)
 
 extern void QFT(const gcry_mpi_t n, struct params *p)
 {
+	gcry_mpi_t buff = gcry_mpi_new(0);
+	gcry_mpi_mod(buff, n, two);
+	
+	if(gcry_mpi_cmp(buff, one) != 0)
+	{
+		printf("Number should be odd\n");
+		gcry_mpi_release(buff);
+		return;
+	};
+
+	gcry_mpi_release(buff);
+
 	bool prime = step_1(n);
-	prime = step_2(n);
+	prime = prime && step_2(n);
 	if(!prime)
 	{
 		printf("Number is composite\n");
@@ -461,3 +544,4 @@ extern void RQFT(const gcry_mpi_t n)
 
 	release_params(&parameters);
 };
+

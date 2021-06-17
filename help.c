@@ -199,6 +199,7 @@ int number_length(const gcry_mpi_t n, const int base)
 	}
 
 	gcry_mpi_release(buff);
+	gcry_mpi_release(del);
 	return l;
 };
 
