@@ -220,7 +220,7 @@ static void power_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t power
 	gcry_mpi_t bin = gcry_mpi_new(0);
 	hex_to_bin(bin, power);
 	
-	for(int base = number_length(bin, 2); base < 0; base--)
+	for(int base = number_length(bin, 2) - 2; base < (1lu << 63); base--)
 	{
 		//Doubling
 		//Compute B2j = Bj*Aj
@@ -254,7 +254,7 @@ static void power_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t power
 
 			gcry_mpi_mod(buff2, buff, two);
 			if(gcry_mpi_cmp(buff2, one) == 0)
-				gcry_mpi_add(buff, buff, n);
+				gcry_mpi_add(buff, buff, one);
 			gcry_mpi_div(buff, NULL, buff, two, 0);
 
 			//Compute B(j+1) = 2^-1(AjB1 + A1Bj)
@@ -263,7 +263,7 @@ static void power_mod(gcry_mpi_t rez_x, gcry_mpi_t rez_1, const gcry_mpi_t power
 			
 			gcry_mpi_mod(buff2, Bj, two);
 			if(gcry_mpi_cmp(buff2, one) == 0)
-				gcry_mpi_add(Bj,Bj, n);
+				gcry_mpi_add(Bj,Bj, one);
 			gcry_mpi_div(Bj, NULL, buff2, two, 0);
 
 			gcry_mpi_set(Aj, buff); //Aj -> A(j+1)
@@ -441,6 +441,18 @@ bool step3_4_5(const gcry_mpi_t n, struct params *p)
 		//as we need co calculate x^(n+1)/2, we just multiply (fx + g) by x
 		mult_x_mod(f, g, f, g, n, p);
 
+	if(gcry_mpi_cmp(f, zero) != 0)
+	{
+		gcry_mpi_release(t);
+		gcry_mpi_release(s);
+		gcry_mpi_release(f);
+		gcry_mpi_release(g);
+		gcry_mpi_release(x_t_x);
+		gcry_mpi_release(x_t_1);
+		gcry_mpi_release(buff);
+		return(false);
+	};
+
 	//Params to store x^(n+1)/2
 	gcry_mpi_t power_f = gcry_mpi_new(0);
 	gcry_mpi_t power_g = gcry_mpi_new(0);
@@ -448,17 +460,23 @@ bool step3_4_5(const gcry_mpi_t n, struct params *p)
 	gcry_mpi_set(power_f, f);
 	gcry_mpi_set(power_g, g);
 
-	if(gcry_mpi_cmp(f, zero) != 0)
-		primality = false;
-
 	//Step 4: check if x^(n+1) == -c
-	gcry_mpi_mul(f, f, f);
+	gcry_mpi_mul(g, g, g);
 	gcry_mpi_sub(buff, n, p->c);
 
-	if(gcry_mpi_cmp(f, buff) == 0)
-		primality = false;
-	else
-		primality = true;
+	if(gcry_mpi_cmp(g, buff) == 0)
+	{
+		gcry_mpi_release(t);
+		gcry_mpi_release(s);
+		gcry_mpi_release(f);
+		gcry_mpi_release(g);
+		gcry_mpi_release(x_t_x);
+		gcry_mpi_release(x_t_1);
+		gcry_mpi_release(power_f);
+		gcry_mpi_release(power_g);
+		gcry_mpi_release(buff);
+		return(false);
+	};
 
 	//Step 5:
 	gcry_mpi_mul(buff, n, n);
@@ -474,11 +492,12 @@ bool step3_4_5(const gcry_mpi_t n, struct params *p)
 	}
 	else
 	{
-		sigma(f, g, x_t_x, x_t_1, n, p);
-		mult_mod(f, g, f, g, power_f, power_g, n, p);
-		mult_x_mod(x_t_x, x_t_1, x_t_x, x_t_1, n, p);
-		invert_mod(x_t_x, x_t_1, x_t_x, x_t_1, n, p);
-		mult_mod(f, g, f, g, x_t_x, x_t_1, n, p);
+		//x^s = x^(nt) x^((n+1)/2) x(-t-1)
+		sigma(f, g, x_t_x, x_t_1, n, p); //x^(nt)
+		mult_mod(f, g, f, g, power_f, power_g, n, p); //*(x^((n+1)/2))
+		mult_x_mod(x_t_x, x_t_1, x_t_x, x_t_1, n, p); //x^(t+1)
+		invert_mod(x_t_x, x_t_1, x_t_x, x_t_1, n, p); //^-1
+		mult_mod(f, g, f, g, x_t_x, x_t_1, n, p); //*x^(-t-1)
 	}
 
 	gcry_mpi_sub(buff, n, one);
